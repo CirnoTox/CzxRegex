@@ -49,6 +49,34 @@ CharacterSet CzxRegex::getCharacterSet()
         return resultCS;
     }
 
+    //字符集合
+    if (Is(Read,"{")){
+        if (Read == itPatternEnd) {//已识别到末尾，无字符与转义字符匹配匹配
+            errorLog << "GetCharacterSet ERROR!Stream End!Need for char to match the \" } \"";
+            return CharacterSet();
+        }
+        auto rangeEnd=false;
+        for (;Read != itPatternEnd; Read++) {
+            //如果在字符列表中读到了转义符，却没有读到唯一的相应转义字符“}”，那么异常
+            if (Is(Read, "\\")&&!Is(Read, "}")) {
+                errorLog << "GetCharacterSet ERROR!Need for char to match the \" \\ \"";
+                return CharacterSet();
+            }
+            //读到"}"正常结束
+            if (Is(Read,"}")) {
+                rangeEnd = true;
+                break;
+            }
+        }
+        if (!rangeEnd) {
+            errorLog << "GetCharacterSet ERROR!None matched \" } \"!";
+            return CharacterSet();
+        }
+        auto len = Read - itPattern;
+        itPattern = Read;
+        return CharacterSet(string(Read-len,Read));
+    }
+
     //如果在句首读到了转义字符反斜杠
     //匹配单个转义字符
     if (Is(Read,"\\")) {
@@ -62,7 +90,7 @@ CharacterSet CzxRegex::getCharacterSet()
             vector<string>vs{ "s","S","w","W","d","D","t" };
             for (auto ch : vs) {
                 if (Is(Read, ch) ) {
-                    itPattern = Read;
+                itPattern = Read;
                     return CharacterSet("\\" + string(Read - 1, Read));
                 }
             }
