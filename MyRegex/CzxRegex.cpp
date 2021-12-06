@@ -113,31 +113,33 @@ CharacterSet CzxRegex::getCharacterSet()
     itPattern = Read+1;
     return CharacterSet(string(itPattern-1,itPattern));
 }
-//TODO:Fix bugs
 
+//TODO:Fix bugs
 Series CzxRegex::getSeries()
 {
     Series se;
     Syntax get;
     auto Read = itPattern;
-    for (auto i = 0; i < 2; ++i) {
-        if (get=getRepeat()) {//先getRepeat
+    while ((get = getRepeat()) || (get = getCharacterSet())) {
+        //先getRepeat
+        se.pushSubTree(get);
+    }
+    if (Is(itPattern, "(")) {
+        bool seriesEnd=false;
+        while (((get = getSeries()) ||
+            (Is(itPattern, "|") && (get = getParallel())))) {
             se.pushSubTree(get);
+            if (Is(itPattern, ")")) {
+                seriesEnd = true;
+                break;
+            }
         }
-        else if (get = getCharacterSet()) {
-            se.pushSubTree(get);
-        }
-        else if (Is(itPattern, "(") && ((get = getSeries()) || (get = getParallel()))) {
-            se.pushSubTree(get);
-        }
-        else {
-            errorLog << to_string(itPattern - itPatternBegin);
-            errorLog<< "GetSeries Error!!!\t Error Position:";
-            itPattern = Read;//错误时修改
+        if (!seriesEnd) {
+            errorLog << "GetSeries Error!!!Not ended Series or Parallel:";
             return Series();
         }
     }
-
+    if(itPattern == Read)return Series();//没有匹配到时
     return se;
 }
 
@@ -153,39 +155,81 @@ Repeat CzxRegex::getRepeat()
     Repeat re;
     Syntax get;
     auto Read = itPattern;
-    //如果获取到 CharacterSet
-    if (get = getCharacterSet()) {
-        re.pushSubTree(get);
-        if (Is(itPattern, "*")) {
-            re.insertDataMap("Repeat_Times:",">=0");
-        }
-        else if (Is(itPattern, "+")) {
-            re.insertDataMap("Repeat_Times:", ">=1");
-        }
-        else {
-            itPattern = Read;//错误时修改
-            errorLog << "GetRepeats  operation error!\n";
-            return Repeat();
-        }
-        return re;
-    }
+    
     //TODO:测试没获取到的情况
-    //没获取到
-    if (Is(itPattern, "(")&&((get = getSeries()) || (get = getParallel()))) {
+    if ((get = getCharacterSet())||//获取到 CharacterSet,获取到 CharacterSet
+        Is(itPattern, "(") && ((get = getSeries()) || (get = getParallel())) && Is(itPattern, ")")
+        ) {
         re.pushSubTree(get);
         if (Is(itPattern, "*")) {
-            re.insertDataMap("Repeat_Times:", ">=0");
+            //TODO:insertDataMap 可优化
+            re.insertDataMap("Repeat_Times_Min", "0");
+            re.insertDataMap("Repeat_Times_Max", "unbounded");
+            re.insertDataMap("If_unlimitided", "true");
         }
         else if (Is(itPattern, "+")) {
-            re.insertDataMap("Repeat_Times:", ">=1");
+            re.insertDataMap("Repeat_Times_Min", "1");
+            re.insertDataMap("Repeat_Times_Max", "unbounded");
+            re.insertDataMap("If_unlimitided", "true");
         }
-        else {
-            itPattern = Read;//错误时修改
-            errorLog << "GetRepeats  operation error!\n";
+        else if (Is(itPattern, "?")) {
+            re.insertDataMap("Repeat_Times_Min", "0");
+            re.insertDataMap("Repeat_Times_Max", "1");
+            re.insertDataMap("If_unlimitided", "false");
+        }
+        else if (Is(itPattern,"{")) {
+            auto lambGetNum = [&]() {
+                bool endGetNum = false;
+                bool getComma = false;
+                int pos = 0;
+                vector<string>get;
+                for (auto i = itPattern; i != itPatternEnd; ++i) {
+                    if (*i == ',' ) {
+                        get.push_back(string(itPattern + pos, i));
+                        pos = i - itPattern + 1;
+                        getComma = true;
+                    }
+                    if (*i == '}') {
+                        get.push_back(string(itPattern + pos, i));
+                        itPattern = i+1;//读取完毕，越过
+                        endGetNum = true;
+                    }
+                }
+                bool num2BiggerOrEqual = true;
+                if (get.size() > 1&& !get[1].empty()) {
+                    num2BiggerOrEqual = stoi(get[0]) <= stoi(get[1])?true:false;
+                }
+                tuple<vector<string>, bool>t{ get,endGetNum&&getComma&& num2BiggerOrEqual&&!get.empty()};
+                return t;
+            };
+            auto [nums, invalidSyntax] = lambGetNum();
+            if (!invalidSyntax) {
+                errorLog << "GetRepeat Error!Invalid Syntax!";
+                return Repeat();
+            }
+            re.insertDataMap("Repeat_Times_Min", nums[0]);
+            if (nums.size()>1) {
+                re.insertDataMap("Repeat_Times_Max", nums[1]);
+                re.insertDataMap("If_unlimitided", "false");
+            }
+            else {
+                re.insertDataMap("Repeat_Times_Max", "unbounded");
+                re.insertDataMap("If_unlimitided", "true"); 
+            }
+
+        }
+        else {//匹配到不是Repeat,不是Series或Parallel
+            itPattern = Read;
             return Repeat();
         }
         return re;
     }
+
+    if (false) {
+        //TODO:匹配捕获的情况
+        ;
+    }
+
     //Repeat 匹配失败
     itPattern = Read;//错误时修改
     errorLog << "GetRepeat first char match error!\n";

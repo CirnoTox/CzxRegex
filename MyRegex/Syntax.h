@@ -59,6 +59,11 @@ class Repeat :public Syntax
 {
 public:
 	Repeat() :Syntax() { Type = "Repeat"; }
+	Repeat(string _charList,string _times) {
+		Type = "CharacterSet"; 
+		this->insertDataMap("CharList", _charList);
+
+	}
 	/*
 	int maxTime = 0;
 	int minTime = 0;

@@ -13,13 +13,19 @@
 
 int main()
 {
-    vector<string>vCS{ "[^\\^]" };
-    for (auto& i : vCS) {
-        CzxRegex re{ i };
-        auto get = re.getCharacterSet();
-        auto cs = CharacterSet(i);
-        cout << (get == cs) << endl;
-    }
-    return 0;
+	vector<string>vRepeat{
+				"**"
+	};
+	vector<string>vERepeat;
+	vector<string>vERepeatNeeded{
+		"**"
+	};
+	for (auto& i : vRepeat) {
+		CzxRegex re{ i };
+		auto get = re.getRepeat();
+		if (!re.errorLog.sErrorLog.empty()) {
+			vERepeat.push_back(i);
+		}
+	}
 
 }

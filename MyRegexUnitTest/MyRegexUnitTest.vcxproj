@@ -171,11 +171,6 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MyRegex\MyRegex.vcxproj">
-      <Project>{9577133f-575f-4115-9545-ae2c10de42c6}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
