@@ -163,19 +163,13 @@ Repeat CzxRegex::getRepeat()
         re.pushSubTree(get);
         if (Is(itPattern, "*")) {
             //TODO:insertDataMap 可优化
-            re.insertDataMap("Repeat_Times_Min", "0");
-            re.insertDataMap("Repeat_Times_Max", "unbounded");
-            re.insertDataMap("If_unlimitided", "true");
+            re.insertDataMap("0","unbounded", "true");
         }
         else if (Is(itPattern, "+")) {
-            re.insertDataMap("Repeat_Times_Min", "1");
-            re.insertDataMap("Repeat_Times_Max", "unbounded");
-            re.insertDataMap("If_unlimitided", "true");
+            re.insertDataMap("1", "unbounded", "true");
         }
         else if (Is(itPattern, "?")) {
-            re.insertDataMap("Repeat_Times_Min", "0");
-            re.insertDataMap("Repeat_Times_Max", "1");
-            re.insertDataMap("If_unlimitided", "false");
+            re.insertDataMap( "0", "1", "false");
         }
         else if (Is(itPattern,"{")) {
             auto lambGetNum = [&]() {
@@ -207,14 +201,11 @@ Repeat CzxRegex::getRepeat()
                 errorLog << "GetRepeat Error!Invalid Syntax!";
                 return Repeat();
             }
-            re.insertDataMap("Repeat_Times_Min", nums[0]);
             if (nums.size()>1) {
-                re.insertDataMap("Repeat_Times_Max", nums[1]);
-                re.insertDataMap("If_unlimitided", "false");
+                re.insertDataMap(nums[0], nums[1],"false");
             }
             else {
-                re.insertDataMap("Repeat_Times_Max", "unbounded");
-                re.insertDataMap("If_unlimitided", "true"); 
+                re.insertDataMap(nums[0], "unbounded", "true");
             }
 
         }
@@ -248,6 +239,42 @@ RightBorder CzxRegex::getRightBorder()
 
 Function CzxRegex::getFunction()
 {
+    auto Read = itPattern;
+    auto funcStart=Is(itPattern, "(") && Is(itPattern, "?");
+    Function func;
+    if (funcStart) {
+        switch (*itPattern)
+        {//处理func Datamap
+            itPattern++;
+        case '!':
+            ;
+            break;
+        case '=':
+            ;
+            break;
+        case ':':
+            if (Is(itPattern, "<$")) {
+                //命名检查单独处理
+                break;
+            }
+            else if (Is(itPattern, "<#")) {
+
+            }
+            else {
+
+            }
+            if (Is(itPattern, ">")) {
+                ;
+            }
+            break;
+        default:
+            //匿名捕获
+
+            break;
+        }
+        
+        //处理正则表达式并捕获
+    }
     return Function();
 }
 

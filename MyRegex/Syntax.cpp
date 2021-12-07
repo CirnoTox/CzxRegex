@@ -66,4 +66,9 @@ bool operator==(const Syntax& s, bool b)
 	return s==NULL;
 }
 
-
+void Repeat::insertDataMap(string Repeat_Times_Min, string Repeat_Times_Max, string If_unlimitided)
+{
+	DataMap["Repeat_Times_Min"] = Repeat_Times_Min;
+	DataMap["Repeat_Times_Max"] = Repeat_Times_Max;
+	DataMap["If_unlimitided"] = If_unlimitided;
+}

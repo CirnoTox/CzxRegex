@@ -23,7 +23,7 @@ public:
 	virtual void printData(ostream& os);
 	virtual void pushSubTree(Syntax s);
 	void printSubTree(ostream& os,int Tab = 1);
-	void insertDataMap(string key, string value);
+	virtual void insertDataMap(string key, string value);
 	operator bool() const { return *this != NULL; }
 
 protected:
@@ -61,14 +61,8 @@ public:
 	Repeat() :Syntax() { Type = "Repeat"; }
 	Repeat(string _charList,string _times) {
 		Type = "CharacterSet"; 
-		this->insertDataMap("CharList", _charList);
-
 	}
-	/*
-	int maxTime = 0;
-	int minTime = 0;
-	bool unlimited = true;
-	*/
+	void insertDataMap(string Repeat_Times_Min,string Repeat_Times_Max,string If_unlimitided);
 };
 
 class Border:public Syntax

@@ -5,27 +5,26 @@
 #include<sstream>
 #include"Syntax.h"
 #include"CzxRegex.h"
-/*
-* 每个Syntax及其子类都要维护一个 DataMap 字典，来存储其数据
-* 
-
-*/
-
 int main()
 {
-	vector<string>vRepeat{
-				"**"
-	};
-	vector<string>vERepeat;
-	vector<string>vERepeatNeeded{
-		"**"
-	};
-	for (auto& i : vRepeat) {
-		CzxRegex re{ i };
-		auto get = re.getRepeat();
-		if (!re.errorLog.sErrorLog.empty()) {
-			vERepeat.push_back(i);
-		}
+	string s = "avc";
+	int b = 5;
+	switch (b)
+	{
+		++b;
+	case 5:
+		cout << "5" << endl;
+		
+	case 6:
+		cout << "6" << endl;
+
+	case 999:
+		cout << 999 << endl;
+	default:
+		++b;
+		cout << "b:" << b << endl;
+		break;
 	}
+	return 0;
 
 }
