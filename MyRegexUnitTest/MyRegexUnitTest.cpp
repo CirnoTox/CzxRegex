@@ -14,7 +14,11 @@ namespace MyRegexUnitTest
 	TEST_CLASS(MyRegexUnitTest)
 	{
 	public:
-		
+
+		TEST_METHOD(EZTEST)
+		{
+
+		}
 		TEST_METHOD(Test_CharacterSet)
 		{
 			vector<string>vCS{ 

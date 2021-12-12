@@ -242,14 +242,17 @@ Function CzxRegex::getFunction()
     auto Read = itPattern;
     auto funcStart=Is(itPattern, "(") && Is(itPattern, "?");
     Function func;
+    string funcType;
     if (funcStart) {
         switch (*itPattern)
         {//¥¶¿Ìfunc Datamap
             itPattern++;
         case '!':
-            ;
+            
+            funcType = "PreBackCheck";
             break;
         case '=':
+            funcType = "PreFrountCheck";
             ;
             break;
         case ':':

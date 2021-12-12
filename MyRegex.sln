@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyRegex", "MyRegex\MyRegex.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MyRegexUnitTest", "MyRegexUnitTest\MyRegexUnitTest.vcxproj", "{0A681C5B-17B9-40AF-A173-722D87B3674B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EzTest", "EzTest\EzTest.vcxproj", "{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{0A681C5B-17B9-40AF-A173-722D87B3674B}.Release|x64.Build.0 = Release|x64
 		{0A681C5B-17B9-40AF-A173-722D87B3674B}.Release|x86.ActiveCfg = Release|Win32
 		{0A681C5B-17B9-40AF-A173-722D87B3674B}.Release|x86.Build.0 = Release|Win32
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Debug|x64.ActiveCfg = Debug|x64
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Debug|x64.Build.0 = Debug|x64
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Debug|x86.ActiveCfg = Debug|Win32
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Debug|x86.Build.0 = Debug|Win32
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Release|x64.ActiveCfg = Release|x64
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Release|x64.Build.0 = Release|x64
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Release|x86.ActiveCfg = Release|Win32
+		{74FD08A4-5AB2-4DF0-B49B-51D84D32749C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

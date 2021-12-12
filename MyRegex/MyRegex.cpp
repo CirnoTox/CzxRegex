@@ -3,28 +3,21 @@
 
 #include <iostream>
 #include<sstream>
-#include"Syntax.h"
-#include"CzxRegex.h"
+#include<vector>
+using namespace std;
+//#include"Syntax.h"
+//#include"CzxRegex.h"
+
+class base {
+public:
+	base() = default;
+	vector<shared_ptr<void>>vv;
+};
 int main()
 {
-	string s = "avc";
-	int b = 5;
-	switch (b)
-	{
-		++b;
-	case 5:
-		cout << "5" << endl;
-		
-	case 6:
-		cout << "6" << endl;
-
-	case 999:
-		cout << 999 << endl;
-	default:
-		++b;
-		cout << "b:" << b << endl;
-		break;
-	}
-	return 0;
-
+	base b;
+	b.vv.push_back(make_shared<void>(3));
+	b.vv.push_back(make_shared<void>(string("abc")));
+	b.vv.push_back(make_shared<void>(vector<double>{1,3,2}));
+	b;
 }

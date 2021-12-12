@@ -22,53 +22,77 @@ public:
 	Syntax() = default;
 	virtual void printData(ostream& os);
 	virtual void pushSubTree(Syntax s);
-	void printSubTree(ostream& os,int Tab = 1);
+	virtual void printSubTree(ostream& os,int Tab = 1);
 	virtual void insertDataMap(string key, string value);
 	operator bool() const { return *this != NULL; }
 
 protected:
-	string Type = "Syntax";
-	map<string, string>DataMap{};
-	vector<Syntax>Subtree{};
+	enum class ClassType {
+		NUL,
+		Syntax,
+		CharacterSet,
+		Series,
+		Parallel,
+		Repeat,
+		Border,
+		Function
+	};
+	ClassType Type = ClassType::Syntax;
+	//TODO: DataMap全部换成枚举类
+	//map<string, string>DataMap{};
+	//vector<Syntax>Subtree{};
 };
 
 class CharacterSet :public Syntax
 {
 public:
-	CharacterSet() :Syntax() { Type = "CharacterSet"; }
+	CharacterSet() :Syntax() { Type = ClassType::CharacterSet; }
 	CharacterSet(string _charList) { 
-		Type = "CharacterSet"; this->insertDataMap("CharList",_charList);
+		Type = ClassType::CharacterSet; 
+		CharList = _charList;
 	}
-
+	string CharList;
 };
 
 class Series :public Syntax
 {
 public:
-	Series() :Syntax() { Type = "Series"; }
+	Series() :Syntax() { Type = ClassType::Series; }
+	Series(vector<tuple<shared_ptr<void>, ClassType>> _subExp) :subExp(_subExp) {}
+	vector<tuple<shared_ptr<void>, ClassType>> subExp;
 
 };
 
 class Parallel :public Syntax
 {
 public:
-	Parallel() :Syntax() { Type = "Parallel"; }
+	Parallel() :Syntax() { Type = ClassType::Parallel; }
+	Parallel(vector<tuple<shared_ptr<void>, ClassType>> _subExp) :subExp(_subExp) {}
+	vector<tuple<shared_ptr<void>, ClassType>> subExp;
 };
 
-class Repeat :public Syntax
+class Repeat :protected Syntax
 {
 public:
-	Repeat() :Syntax() { Type = "Repeat"; }
-	Repeat(string _charList,string _times) {
-		Type = "CharacterSet"; 
+	Repeat() :Syntax() { Type = ClassType::Repeat;}
+	Repeat(ClassType _subExpType, shared_ptr<void> sPtr,
+		int _minRepeatTimes, int _maxRepeatTimes, bool _ifUnbounded) {
+		Type = ClassType::Repeat;
+		subExp = {sPtr,_subExpType};
+		minRepeatTimes = _minRepeatTimes;
+		maxRepeatTimes = _maxRepeatTimes;
+		ifUnbounded = _ifUnbounded;
 	}
-	void insertDataMap(string Repeat_Times_Min,string Repeat_Times_Max,string If_unlimitided);
+	tuple<shared_ptr<void>, ClassType> subExp;
+	int minRepeatTimes=0;
+	int maxRepeatTimes=0;
+	bool ifUnbounded=false;
 };
 
 class Border:public Syntax
 {
 public:
-	Border() :Syntax() { Type = "Border"; }
+	Border() :Syntax() { Type = ClassType::Border; }
 protected:
 	string LeftOrRight = "";
 };
@@ -88,7 +112,7 @@ public:
 class Function :Syntax
 {
 public:
-	Function() :Syntax() { Type = "Function"; }
+	Function() :Syntax() { Type = ClassType::Function; }
 	Function(string _func, string _discribe, string _name) :func(_func),discribe(_discribe),name(_name) {}
 	string func;
 	string discribe;
