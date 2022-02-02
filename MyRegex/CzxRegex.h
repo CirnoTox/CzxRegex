@@ -4,6 +4,21 @@
 #include<string>
 #include"Syntax.h"
 using namespace std;
+class Result
+{
+public:
+	Result() = default;
+	Result(bool match, ClassType ct,shared_ptr<Syntax>sptrS) {
+		ifMatch = match;
+		tResult = { ct,sptrS };
+	}
+	~Result() = default;
+
+	bool ifMatch = false;
+	tuple<ClassType,shared_ptr<Syntax>>tResult;
+	size_t pos = 0;
+	string massage = "";
+};
 class CzxRegex
 {
 public:
@@ -24,32 +39,20 @@ public:
 	string::iterator itPatternEnd;
 	
 	string matchStr;
-
-	class Result
-	{
-	public:
-		Result()=default;
-		~Result()=default;
-
-		bool eMatchPattern = false;
-		bool eMatchStr = false;
-		size_t ePos = 0;
-		string eMassage = "";
-	private:
-
-	};
 	Result result;
 	Error errorLog;
-
+	
 //private:
+	//使用subTree管理
 	bool Is(string::iterator& it,string Text);
-	CharacterSet getCharacterSet();
-	Series getSeries();
-	Parallel getParallel();
-	Repeat getRepeat();
-	LeftBorder getLeftBorder();
-	RightBorder getRightBorder();
-	Function getFunction();
+	Result getCharacterSet();
+	Result getRepeat();
+	Result getSeries();
+	Result getParallel();
+
+	//LeftBorder getLeftBorder();
+	//RightBorder getRightBorder();
+	//Function getFunction();
 	//智能指针 一个Syntax 识别完返回 
 	Syntax* sptr=nullptr;
 

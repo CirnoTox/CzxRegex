@@ -1,16 +1,15 @@
 #include "CzxRegex.h"
 
 
-CharacterSet CzxRegex::getCharacterSet()
+Result CzxRegex::getCharacterSet()
 {
     //保存位置
     auto Read = itPattern;
-    if (Read == itPatternEnd)return CharacterSet();
+    if (Read == itPatternEnd)return Result{};
     //字符列表
     if (Is(Read,"[")) {
         if (Read == itPatternEnd) {//已识别到末尾，无字符与转义字符匹配匹配
-            errorLog << "GetCharacterSet ERROR!Stream End!Need for char to match the \" ] \"";
-            return CharacterSet();
+            return Result{};
         }
         bool opposite = false;
         bool rangeEnd = false;
@@ -24,14 +23,12 @@ CharacterSet CzxRegex::getCharacterSet()
             }
             //读到没有转义的 ^
             if (Is(Read, "^")) {
-                errorLog << "GetCharacterSet ERROR!Need for \"\\\" to match the \" ^ \"";
-                return CharacterSet();
+                return Result{};
             }
             //如果在字符列表中读到了转义符，却没有读到唯二的相应转义字符，那么异常
             if (Is(Read, "\\")) {
                 if (!Is(Read, "]")&& !Is(Read, "^")) {
-                    errorLog << "GetCharacterSet ERROR!Need for char to match the \" \\ \"";
-                    return CharacterSet();
+                    return Result{};
                 }
                 continue;
             }
@@ -39,28 +36,25 @@ CharacterSet CzxRegex::getCharacterSet()
         }
         //字符列表没有匹配的右括号，异常
         if (!rangeEnd) {
-            errorLog << "GetCharacterSet ERROR!None matched \" ] \"!";
-            return CharacterSet();
+            return Result{};
         }
         auto len = Read - itPattern;
         itPattern = Read;
-        CharacterSet resultCS(string(Read - len, Read));
-        if (opposite)resultCS.insertDataMap("Oppsite", "True");
-        return resultCS;
+        auto sptrCS = make_shared<CharacterSet>(string(Read - len, Read));
+        if (opposite)sptrCS.get()->Oppsite = true;
+        return Result{ true,ClassType::CharacterSet,sptrCS };
     }
 
     //字符集合
     if (Is(Read,"{")){
         if (Read == itPatternEnd) {//已识别到末尾，无字符与转义字符匹配匹配
-            errorLog << "GetCharacterSet ERROR!Stream End!Need for char to match the \" } \"";
-            return CharacterSet();
+            return Result();
         }
         auto rangeEnd=false;
         for (;Read != itPatternEnd; Read++) {
             //如果在字符列表中读到了转义符，却没有读到唯一的相应转义字符“}”，那么异常
             if (Is(Read, "\\")&&!Is(Read, "}")) {
-                errorLog << "GetCharacterSet ERROR!Need for char to match the \" \\ \"";
-                return CharacterSet();
+                return Result();
             }
             //读到"}"正常结束
             if (Is(Read,"}")) {
@@ -69,12 +63,12 @@ CharacterSet CzxRegex::getCharacterSet()
             }
         }
         if (!rangeEnd) {
-            errorLog << "GetCharacterSet ERROR!None matched \" } \"!";
-            return CharacterSet();
+            return Result();
         }
         auto len = Read - itPattern;
         itPattern = Read;
-        return CharacterSet(string(Read-len,Read));
+        auto sptrCS=make_shared<CharacterSet>(string(Read - len, Read));
+        return Result{true,ClassType::CharacterSet,sptrCS};
     }
 
     //如果在句首读到了转义字符反斜杠
@@ -82,204 +76,217 @@ CharacterSet CzxRegex::getCharacterSet()
     if (Is(Read,"\\")) {
         string escape{ "^?[]\\{}()" };
         if (Read == itPatternEnd) {//已识别到末尾，无字符与转义字符匹配匹配
-            errorLog << "GetCharacterSet ERROR!Stream End!Need for char to match the \" \\ \"";
-            return CharacterSet();
+            return Result();
         }
         if (escape.find(*Read) ==string::npos) {//读到不需要转义的字符
             //是s,S,w,W,d,D,t就可以匹配
             vector<string>vs{ "s","S","w","W","d","D","t" };
             for (auto ch : vs) {
                 if (Is(Read, ch) ) {
-                itPattern = Read;
-                    return CharacterSet("\\" + string(Read - 1, Read));
+                    itPattern = Read;
+                    auto sptrCS = make_shared<CharacterSet>("\\" + string(Read - 1, Read));
+                    return Result{ true,ClassType::CharacterSet,sptrCS };
                 }
             }
             //否则没有匹配项，异常
             itPattern = Read;
-            errorLog << "GetCharacterSet ERROR!Need for char to match the \" \\ \"";
-            return CharacterSet();
+            return Result{};
         }
         //正常匹配需要转义的字符
         Read++;
-        return CharacterSet(string(Read-2,Read));
+        itPattern = Read;
+        auto sptrCS = make_shared<CharacterSet>(string(Read - 2, Read));
+        return Result{true,ClassType::CharacterSet,sptrCS};
     }
 
     //匹配单字，如果是需要转义的字符，就直接返回说明不是CharacterSet
     string escape{ "^?]}()*$|+" };// "{,],/" 在前面已经处理过了
     if (escape.find(*Read) != string::npos) {
-        return CharacterSet();
+        return Result{};
     }
     //正常匹配一个字符
     itPattern = Read+1;
-    return CharacterSet(string(itPattern-1,itPattern));
+    auto sptrCS = make_shared<CharacterSet>(string(itPattern - 1, itPattern));
+    return Result{ true,ClassType::CharacterSet,sptrCS };
 }
 
-//TODO:Fix bugs
-Series CzxRegex::getSeries()
-{
-    Series se;
-    Syntax get;
-    auto Read = itPattern;
-    while ((get = getRepeat()) || (get = getCharacterSet())) {
-        //先getRepeat
-        se.pushSubTree(get);
-    }
-    if (Is(itPattern, "(")) {
-        bool seriesEnd=false;
-        while (((get = getSeries()) ||
-            (Is(itPattern, "|") && (get = getParallel())))) {
-            se.pushSubTree(get);
-            if (Is(itPattern, ")")) {
-                seriesEnd = true;
-                break;
-            }
-        }
-        if (!seriesEnd) {
-            errorLog << "GetSeries Error!!!Not ended Series or Parallel:";
-            return Series();
-        }
-    }
-    if(itPattern == Read)return Series();//没有匹配到时
-    return se;
-}
 
-//TODO:实现getParallel
-Parallel CzxRegex::getParallel()
+Result CzxRegex::getRepeat()
 {
-    return Parallel();
-}
 
-// TODO:getRepeat
-Repeat CzxRegex::getRepeat()
-{
     Repeat re;
-    Syntax get;
+    Result getResult;
     auto Read = itPattern;
-    
-    //TODO:测试没获取到的情况
-    if ((get = getCharacterSet())||//获取到 CharacterSet,获取到 CharacterSet
-        Is(itPattern, "(") && ((get = getSeries()) || (get = getParallel())) && Is(itPattern, ")")
-        ) {
-        re.pushSubTree(get);
+
+    getResult = getCharacterSet();
+    if (getResult.ifMatch) {
+        auto tResult = getResult.tResult;
+        auto type = get<ClassType>(tResult);
+        if (type == ClassType::CharacterSet) {
+            re.setContent(tResult);
+        }
         if (Is(itPattern, "*")) {
             //TODO:insertDataMap 可优化
-            re.insertDataMap("0","unbounded", "true");
+            re.setRepeatType(0, -1, true);
         }
         else if (Is(itPattern, "+")) {
-            re.insertDataMap("1", "unbounded", "true");
+            re.setRepeatType(1, -1, true);
         }
         else if (Is(itPattern, "?")) {
-            re.insertDataMap( "0", "1", "false");
+            re.setRepeatType(0, 1, false);
         }
-        else if (Is(itPattern,"{")) {
-            auto lambGetNum = [&]() {
+        else if (Is(itPattern, "{")) {
+            auto lambGetRepeatTimes = [&]() {
                 bool endGetNum = false;
                 bool getComma = false;
                 int pos = 0;
                 vector<string>get;
                 for (auto i = itPattern; i != itPatternEnd; ++i) {
-                    if (*i == ',' ) {
+                    if (*i == ',') {
                         get.push_back(string(itPattern + pos, i));
                         pos = i - itPattern + 1;
                         getComma = true;
                     }
                     if (*i == '}') {
                         get.push_back(string(itPattern + pos, i));
-                        itPattern = i+1;//读取完毕，越过
+                        itPattern = i + 1;//读取完毕，越过
                         endGetNum = true;
                     }
                 }
                 bool num2BiggerOrEqual = true;
-                if (get.size() > 1&& !get[1].empty()) {
-                    num2BiggerOrEqual = stoi(get[0]) <= stoi(get[1])?true:false;
+                if (get.size() > 1 && !get[1].empty()) {
+                    num2BiggerOrEqual = stoi(get[0]) <= stoi(get[1]) ? true : false;
+                
                 }
-                tuple<vector<string>, bool>t{ get,endGetNum&&getComma&& num2BiggerOrEqual&&!get.empty()};
+                if (get.size() > 1&& get[1] == "") {
+                    get.pop_back();
+                }
+                tuple<vector<string>, bool>t{ get,endGetNum && getComma && num2BiggerOrEqual && !get.empty() };
                 return t;
             };
-            auto [nums, invalidSyntax] = lambGetNum();
+            auto [nums, invalidSyntax] = lambGetRepeatTimes();
             if (!invalidSyntax) {
-                errorLog << "GetRepeat Error!Invalid Syntax!";
-                return Repeat();
+                getResult.massage += "\tGetRepeat Error!Invalid Syntax!";
+                getResult.ifMatch = false;
+                return getResult;
             }
-            if (nums.size()>1) {
-                re.insertDataMap(nums[0], nums[1],"false");
-            }
-            else {
-                re.insertDataMap(nums[0], "unbounded", "true");
-            }
+            if (nums.size() > 1) {
 
-        }
-        else {//匹配到不是Repeat,不是Series或Parallel
-            itPattern = Read;
-            return Repeat();
-        }
-        return re;
-    }
-
-    if (false) {
-        //TODO:匹配捕获的情况
-        ;
-    }
-
-    //Repeat 匹配失败
-    itPattern = Read;//错误时修改
-    errorLog << "GetRepeat first char match error!\n";
-    return Repeat();
-}
-
-LeftBorder CzxRegex::getLeftBorder()
-{
-    return LeftBorder();
-}
-
-RightBorder CzxRegex::getRightBorder()
-{
-    return RightBorder();
-}
-
-Function CzxRegex::getFunction()
-{
-    auto Read = itPattern;
-    auto funcStart=Is(itPattern, "(") && Is(itPattern, "?");
-    Function func;
-    string funcType;
-    if (funcStart) {
-        switch (*itPattern)
-        {//处理func Datamap
-            itPattern++;
-        case '!':
-            
-            funcType = "PreBackCheck";
-            break;
-        case '=':
-            funcType = "PreFrountCheck";
-            ;
-            break;
-        case ':':
-            if (Is(itPattern, "<$")) {
-                //命名检查单独处理
-                break;
-            }
-            else if (Is(itPattern, "<#")) {
-
+                re.setRepeatType(stoi(nums[0]), stoi(nums[1]), false);
             }
             else {
-
+                re.setRepeatType(0, 1, false);
+                re.setRepeatType(stoi(nums[0]), -1, true);
             }
-            if (Is(itPattern, ">")) {
-                ;
-            }
-            break;
-        default:
-            //匿名捕获
-
-            break;
         }
-        
-        //处理正则表达式并捕获
     }
-    return Function();
+    //TODO:测试没获取到的情况
+    //TODO:Repeat其他的情况
+    if (itPattern==Read) {
+        //没捕获到任何Repeat情况
+        return Result{ false,ClassType::Syntax,nullptr };
+    }
+    auto sptrRepeat = make_shared<Repeat>(re);
+    return Result{true,ClassType::Repeat,sptrRepeat };
 }
+
+
+
+//TODO:Fix bugs
+
+//Result CzxRegex::getSeries()
+//{
+//    Series se;
+//    Syntax get;
+//    auto Read = itPattern;
+//    while (/*(get = getRepeat()) ||*/ (get = getCharacterSet())) {
+//        //先getRepeat
+//        se.pushSubTree(get);
+//    }
+//    if (Is(itPattern, "(")) {
+//        bool seriesEnd=false;
+//        while (((get = getSeries()) ||
+//            (Is(itPattern, "|") && (get = getParallel())))) {
+//            se.pushSubTree(get);
+//            if (Is(itPattern, ")")) {
+//                seriesEnd = true;
+//                break;
+//            }
+//        }
+//        if (!seriesEnd) {
+//            errorLog << "GetSeries Error!!!Not ended Series or Parallel:";
+//            return Series();
+//        }
+//    }
+//    if(itPattern == Read)return Series();//没有匹配到时
+//    return se;
+//}
+
+
+//TODO:实现getParallel
+//Result CzxRegex::getParallel()
+//{
+//    return Parallel();
+//}
+
+
+
+
+//
+//LeftBorder CzxRegex::getLeftBorder()
+//{
+//    return LeftBorder();
+//}
+//
+//RightBorder CzxRegex::getRightBorder()
+//{
+//    return RightBorder();
+//}
+
+//Function CzxRegex::getFunction()
+//{
+//    auto Read = itPattern;
+//    auto funcStart=Is(itPattern, "(") && Is(itPattern, "?");
+//    Function func;
+//    string funcType;
+//    if (funcStart) {
+//        switch (*itPattern)
+//        {//处理func Datamap
+//            itPattern++;
+//        case '!':
+//            
+//            funcType = "BackCPreheck";
+//            break;
+//        case '=':
+//            funcType = "FrontPreCheck"; 
+//                
+//            ;
+//            break;
+//        case ':':
+//            if (Is(itPattern, "<$")) {
+//                //命名检查单独处理
+//                break;
+//            }
+//            else if (Is(itPattern, "<#")) {
+//
+//            }
+//            else {
+//
+//            }
+//            if (Is(itPattern, ">")) {
+//                ;
+//            }
+//            break;
+//        default:
+//            //匿名捕获
+//
+//            break;
+//        }
+//        
+//        //处理正则表达式并捕获
+//    }
+//    return Function();
+//}
 
 CzxRegex::CzxRegex(string _pattern)
 {
