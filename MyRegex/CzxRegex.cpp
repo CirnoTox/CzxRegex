@@ -89,7 +89,7 @@ Result CzxRegex::getCharacterSet()
                 }
             }
             //否则没有匹配项，异常
-            itPattern = Read;
+            //itPattern = Read;
             return Result{};
         }
         //正常匹配需要转义的字符
@@ -102,7 +102,7 @@ Result CzxRegex::getCharacterSet()
     //匹配单字，如果是需要转义的字符，就直接返回说明不是CharacterSet
     string escape{ "^?]}()*$|+" };// "{,],/" 在前面已经处理过了
     if (escape.find(*Read) != string::npos) {
-        return Result{};
+        return Result{"Get an escape-needed CharacterSet"};
     }
     //正常匹配一个字符
     itPattern = Read+1;
@@ -113,12 +113,14 @@ Result CzxRegex::getCharacterSet()
 
 Result CzxRegex::getRepeat()
 {
-
     Repeat re;
     Result getResult;
     auto Read = itPattern;
 
     getResult = getCharacterSet();
+    if (!getResult.ifMatch) {
+        getResult = getSeries();
+    }
     if (getResult.ifMatch) {
         auto tResult = getResult.tResult;
         auto type = get<ClassType>(tResult);
@@ -179,6 +181,13 @@ Result CzxRegex::getRepeat()
                 re.setRepeatType(stoi(nums[0]), -1, true);
             }
         }
+        else {
+            //是CharacterSet
+            return Result{ true,tResult };
+        }
+    }
+    if (!getResult.ifMatch) {
+        return getResult;
     }
     //TODO:测试没获取到的情况
     //TODO:Repeat其他的情况
@@ -190,37 +199,83 @@ Result CzxRegex::getRepeat()
     return Result{true,ClassType::Repeat,sptrRepeat };
 }
 
+Result CzxRegex::getParallel()
+{
+    return Result();
+}
 
+//指向一对括号内的第一个字符
+auto CzxRegex::matchParen()
+{
+    auto Read = itPattern;
+    auto beg = itPattern;//指向括号后第一个字符
+    auto count = 1;
+    for (; count != 0 && beg != itPatternEnd; beg++) {//结束后指向最远匹配的括号的下一个字符
+        if (*beg == '(')
+            count++;
+        else if (*beg == ')')
+            count--;
+        else;
+    }
+    if (count != 0) {
+        //没匹配完整
+        itPattern = Read;
+        return itPattern;
+    }
+    beg--;//beg--后指向最远匹配的括号
+    //itPattern到end之间即为series
+    return beg;
+}
 
 //TODO:Fix bugs
-
-//Result CzxRegex::getSeries()
-//{
-//    Series se;
-//    Syntax get;
-//    auto Read = itPattern;
-//    while (/*(get = getRepeat()) ||*/ (get = getCharacterSet())) {
-//        //先getRepeat
-//        se.pushSubTree(get);
-//    }
-//    if (Is(itPattern, "(")) {
-//        bool seriesEnd=false;
-//        while (((get = getSeries()) ||
-//            (Is(itPattern, "|") && (get = getParallel())))) {
-//            se.pushSubTree(get);
-//            if (Is(itPattern, ")")) {
-//                seriesEnd = true;
-//                break;
-//            }
-//        }
-//        if (!seriesEnd) {
-//            errorLog << "GetSeries Error!!!Not ended Series or Parallel:";
-//            return Series();
-//        }
-//    }
-//    if(itPattern == Read)return Series();//没有匹配到时
-//    return se;
-//}
+Result CzxRegex::getSeries()
+{
+    Series se;
+    auto Read = itPattern;
+    
+    auto seriesEnd = matchParen();//将指向最远匹配的括号
+    auto seriesCount = 0;
+    if (itPattern == seriesEnd) {
+        //相等时循环获取到结束
+        Result getResult{true,ClassType::Series,nullptr};
+        //for循环中如果上一次循环match到了就继续match
+        for (;itPattern<itPatternEnd&& getResult.ifMatch == true; ) {
+            if (getResult = getRepeat(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult);
+                seriesCount++;
+                continue;
+            }
+            if (getResult = getCharacterSet(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult); 
+                seriesCount++;
+            }
+        }
+        //无括号情况应该匹配到结束，itPattern!=itPatternEnd则异常
+        if (itPattern != itPatternEnd) {
+            return Result{ string("") + "Invalid Syntax. Pos: " + *itPattern };
+        }
+    }
+    else {
+        for (; itPattern < seriesEnd; seriesCount++) {//不相等时循环获取到seriesEnd
+            if (auto getResult = getRepeat(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult);
+                continue;
+            }
+            if (auto getResult = getCharacterSet(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult);
+            }
+        }
+        //itPattern将指向最远匹配的括号
+        itPattern++;//越过括号
+    }
+    if (seriesCount == 0) {
+        return Result{"Series matched null."};
+    }
+    if (seriesCount == 1) {
+        return Result{ true,se.content[0] };
+    }
+    return Result{true,ClassType::Series,make_shared<Series>(se)};
+}
 
 
 //TODO:实现getParallel

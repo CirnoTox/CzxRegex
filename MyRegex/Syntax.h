@@ -50,8 +50,7 @@ class Series :public Syntax
 {
 public:
 	Series() :Syntax() { Type = ClassType::Series; }
-	//Series(vector<tuple<shared_ptr<void>, ClassType>> _subExp) :subExp(_subExp) {}
-	//vector<tuple<shared_ptr<void>, ClassType>> subExp;
+	vector<tuple<ClassType, shared_ptr<Syntax>>> content;
 
 };
 

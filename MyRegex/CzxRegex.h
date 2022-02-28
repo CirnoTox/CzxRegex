@@ -12,6 +12,14 @@ public:
 		ifMatch = match;
 		tResult = { ct,sptrS };
 	}
+	Result(bool match, tuple<ClassType, shared_ptr<Syntax>>_tResult) {
+		ifMatch = match;
+		tResult = _tResult;
+	}
+	Result(string _massage,bool match=false) {
+		massage = _massage;
+		ifMatch = match;
+	}
 	~Result() = default;
 
 	bool ifMatch = false;
@@ -49,7 +57,7 @@ public:
 	Result getRepeat();
 	Result getSeries();
 	Result getParallel();
-
+	auto matchParen();
 	//LeftBorder getLeftBorder();
 	//RightBorder getRightBorder();
 	//Function getFunction();

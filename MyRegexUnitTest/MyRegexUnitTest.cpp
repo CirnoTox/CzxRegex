@@ -14,8 +14,6 @@ namespace MyRegexUnitTest
 	TEST_CLASS(MyRegexUnitTest)
 	{
 	public:
-
-		
 		TEST_METHOD(Test_CharacterSet)
 		{
 			vector<string>vCS{ 
@@ -77,34 +75,59 @@ namespace MyRegexUnitTest
 			}
 			Assert::IsTrue(vERepeat == vERepeatNeeded);
 		}
+		TEST_METHOD(Test_Repeat_Series)
+		{
+			vector<string>v{
+				//可识别的
+				"(a+s\\d)*",
+				//应该无法识别的内容
+				
+			};
+			vector<string>vError;
+			vector<string>vErrorNeeded{};
+			for (auto& i : v) {
+				CzxRegex re{ i };
+				auto get = re.getRepeat();
+				if (!get.ifMatch) {
+					vError.push_back(i);
+				}
+			}
+			Logger::WriteMessage("异常Series:");
+			for (auto i : vError) {
+				Logger::WriteMessage(i.c_str());
+				Logger::WriteMessage(",");
+			}
+			Assert::IsTrue(vError == vErrorNeeded);
+		}
 
-
-		//TEST_METHOD(Test_Series)
-		//{
-		//	vector<string>v{
-		//		"aB","\\w\\D","\\^[a-o2_9_]"
-		//		"(",//只读到左括号自动结束，说明不是Series
-		//		"^","*","$", "|", "+",//同上
-		//		"[^12^]","\\y","["//应该有characterSet的报错
-		//		"(abc","ajxi)"
-		//	};
-		//	vector<string>vError;
-		//	vector<string>vErrorNeeded{ "[^12^]","\\y","[","(abc","ajxi)" };
-		//	for (auto& i : v) {
-		//		CzxRegex re{ i };
-		//		auto get = re.getCharacterSet();
-		//		auto cs = CharacterSet(i);
-		//		if (!re.errorLog.sErrorLog.empty()) {
-		//			vError.push_back(i);
-		//		}
-		//	}
-		//	Logger::WriteMessage("异常Series:");
-		//	for (auto i : vError) {
-		//		Logger::WriteMessage(i.c_str());
-		//		Logger::WriteMessage(",");
-		//	}
-		//	Assert::IsTrue(vError == vErrorNeeded);
-		//}
+		TEST_METHOD(Test_Series)
+		{
+			vector<string>v{
+				//可识别的
+				"aB","\\w\\D","\\^[a-o2_9_]",
+				"a+sd\\s+au*iofjwel","(a+s\\d)",
+				//应该无法识别的内容
+				"(",//只读到左括号自动结束，说明不是Series
+				"^","*","$", "|", "+",//同上
+				"[^12^]","\\y","[",//应该有characterSet的报错
+				"(abc","ajxi)",//测试括号匹配
+			};
+			vector<string>vError;
+			vector<string>vErrorNeeded{ "(","^","*","$", "|", "+","[^12^]","\\y","[","(abc","ajxi)" };
+			for (auto& i : v) {
+				CzxRegex re{ i };
+				auto get = re.getSeries();
+				if (!get.ifMatch) {
+					vError.push_back(i);
+				}
+			}
+			Logger::WriteMessage("异常Series:");
+			for (auto i : vError) {
+				Logger::WriteMessage(i.c_str());
+				Logger::WriteMessage(",");
+			}
+			Assert::IsTrue(vError == vErrorNeeded);
+		}
 
 		/*TEST_METHOD(Test_Parallel)
 		{
