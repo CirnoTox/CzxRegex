@@ -43,6 +43,28 @@ namespace MyRegexUnitTest
 			Assert::IsTrue(vErrorCS==vErrorCSNeeded);
 		}
 
+		TEST_METHOD(Test_MatchParen)
+		{
+			vector<string>vs{
+				"a(bc)","()","(())","()()",
+				"(","a)"
+			};
+			vector<string>vsWrong{
+				"a(bc)","(","a)",
+			};
+			vector<string>check;
+			for (auto s : vs) {
+				CzxRegex re{s};
+				auto i= re.matchParen();
+				if (get<0>(i) == get<1>(i)) {
+					check.push_back(s);
+				}
+			}
+			Assert::IsTrue(check == vsWrong);
+
+
+		}
+
 		TEST_METHOD(Test_Repeat_CharacterSet)
 		{
 			vector<string>vRepeat{
@@ -79,7 +101,7 @@ namespace MyRegexUnitTest
 		{
 			vector<string>v{
 				//可识别的
-				"(a+s\\d)*",
+				"(a+s\\d)*","hgfgfy(gj(hkh)+)*",
 				//应该无法识别的内容
 				
 			};
@@ -106,14 +128,15 @@ namespace MyRegexUnitTest
 				//可识别的
 				"aB","\\w\\D","\\^[a-o2_9_]",
 				"a+sd\\s+au*iofjwel","(a+s\\d)",
+				"ajxi)",//匹配一部分
 				//应该无法识别的内容
 				"(",//只读到左括号自动结束，说明不是Series
 				"^","*","$", "|", "+",//同上
 				"[^12^]","\\y","[",//应该有characterSet的报错
-				"(abc","ajxi)",//测试括号匹配
+				"(abc",//测试括号匹配
 			};
 			vector<string>vError;
-			vector<string>vErrorNeeded{ "(","^","*","$", "|", "+","[^12^]","\\y","[","(abc","ajxi)" };
+			vector<string>vErrorNeeded{ "(","^","*","$", "|", "+","[^12^]","\\y","[","(abc"};
 			for (auto& i : v) {
 				CzxRegex re{ i };
 				auto get = re.getSeries();
@@ -129,9 +152,31 @@ namespace MyRegexUnitTest
 			Assert::IsTrue(vError == vErrorNeeded);
 		}
 
-		/*TEST_METHOD(Test_Parallel)
-		{
+		TEST_METHOD(Test_Parallel) {
+			vector<string>v{
+				//可识别的
+				"a|b","(cv)|(dd)",
+				"a|jxi)",//匹配一部分
+				//应该无法识别的内容
+				"(",//只读到左括号自动结束，说明不是Series
+				"^","*","$", "|", "+",//同上
+			};
+			vector<string>vError;
+			vector<string>vErrorNeeded{ "(","^","*","$", "|", "+" };
+			for (auto& i : v) {
+				CzxRegex re{ i };
+				auto get = re.getParallel();
+				if (!get.ifMatch) {
+					vError.push_back(i);
+				}
+			}
+			Logger::WriteMessage("异常Para:");
+			for (auto i : vError) {
+				Logger::WriteMessage(i.c_str());
+				Logger::WriteMessage(",");
+			}
+			Assert::IsTrue(vError == vErrorNeeded);
+		}
 
-		}*/
 	};
 }

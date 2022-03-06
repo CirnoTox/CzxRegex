@@ -58,6 +58,7 @@ class Parallel :public Syntax
 {
 public:
 	Parallel() :Syntax() { Type = ClassType::Parallel; }
+	vector<tuple<ClassType, shared_ptr<Syntax>>> content;
 	//Parallel(vector<tuple<shared_ptr<void>, ClassType>> _subExp) :subExp(_subExp) {}
 	//vector<tuple<shared_ptr<void>, ClassType>> subExp;
 };

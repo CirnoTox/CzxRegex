@@ -53,11 +53,11 @@ public:
 //private:
 	//使用subTree管理
 	bool Is(string::iterator& it,string Text);
+	auto matchParen();
 	Result getCharacterSet();
 	Result getRepeat();
 	Result getSeries();
 	Result getParallel();
-	auto matchParen();
 	//LeftBorder getLeftBorder();
 	//RightBorder getRightBorder();
 	//Function getFunction();

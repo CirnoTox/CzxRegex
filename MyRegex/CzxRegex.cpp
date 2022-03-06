@@ -110,6 +110,30 @@ Result CzxRegex::getCharacterSet()
     return Result{ true,ClassType::CharacterSet,sptrCS };
 }
 
+//matchParen返回从itPattern开始之后位置的第一对括号
+auto CzxRegex::matchParen()
+{
+    if (*itPattern != '(')return make_tuple(itPattern,itPattern);
+    auto Read = itPattern;
+    auto beg = itPattern;
+    auto count = 1;
+    auto firstParen=find(itPattern, itPatternEnd, '(');
+    if (firstParen == itPatternEnd)return make_tuple(itPattern, itPattern);
+    for (beg=firstParen+1; count != 0 && beg != itPatternEnd; beg++) {//结束后指向最远匹配的括号的下一个字符
+        if (*beg == '(')
+            count++;
+        else if (*beg == ')')
+            count--;
+        else;
+        if (count == 0)return make_tuple(firstParen, beg);
+    }
+    //if (count != 0) {
+    //    //没匹配完整
+    //    itPattern = Read;
+    //    return make_tuple(itPattern, itPattern);
+    //}
+    return make_tuple(itPattern, itPattern);
+}
 
 Result CzxRegex::getRepeat()
 {
@@ -119,7 +143,11 @@ Result CzxRegex::getRepeat()
 
     getResult = getCharacterSet();
     if (!getResult.ifMatch) {
+        auto paren = matchParen();
+        if (get<0>(paren) == get<1>(paren))return Result{ false,ClassType::Syntax,nullptr };
+        itPattern++;
         getResult = getSeries();
+        itPattern++;
     }
     if (getResult.ifMatch) {
         auto tResult = getResult.tResult;
@@ -199,90 +227,135 @@ Result CzxRegex::getRepeat()
     return Result{true,ClassType::Repeat,sptrRepeat };
 }
 
-Result CzxRegex::getParallel()
-{
-    return Result();
-}
-
-//指向一对括号内的第一个字符
-auto CzxRegex::matchParen()
-{
-    auto Read = itPattern;
-    auto beg = itPattern;//指向括号后第一个字符
-    auto count = 1;
-    for (; count != 0 && beg != itPatternEnd; beg++) {//结束后指向最远匹配的括号的下一个字符
-        if (*beg == '(')
-            count++;
-        else if (*beg == ')')
-            count--;
-        else;
-    }
-    if (count != 0) {
-        //没匹配完整
-        itPattern = Read;
-        return itPattern;
-    }
-    beg--;//beg--后指向最远匹配的括号
-    //itPattern到end之间即为series
-    return beg;
-}
-
 //TODO:Fix bugs
 Result CzxRegex::getSeries()
 {
     Series se;
     auto Read = itPattern;
+    size_t seriesCount = 0;
+
     
-    auto seriesEnd = matchParen();//将指向最远匹配的括号
-    auto seriesCount = 0;
-    if (itPattern == seriesEnd) {
-        //相等时循环获取到结束
-        Result getResult{true,ClassType::Series,nullptr};
-        //for循环中如果上一次循环match到了就继续match
-        for (;itPattern<itPatternEnd&& getResult.ifMatch == true; ) {
-            if (getResult = getRepeat(); getResult.ifMatch == true) {
+    for (; itPattern < itPatternEnd;) {
+        if (auto getResult = getRepeat(); getResult.ifMatch == true) {
+            se.content.push_back(getResult.tResult);
+            seriesCount++;
+        }
+        else if (auto getResult = getCharacterSet(); getResult.ifMatch == true) {
+            se.content.push_back(getResult.tResult);
+            seriesCount++;
+        }
+        else if (auto paren = matchParen(); get<0>(paren) != get<1>(paren)) {
+            if (auto getResult = getSeries(); getResult.ifMatch == true) {
                 se.content.push_back(getResult.tResult);
                 seriesCount++;
-                continue;
             }
-            if (getResult = getCharacterSet(); getResult.ifMatch == true) {
-                se.content.push_back(getResult.tResult); 
+            else if (auto getResult = getParallel(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult);
                 seriesCount++;
             }
         }
-        //无括号情况应该匹配到结束，itPattern!=itPatternEnd则异常
-        if (itPattern != itPatternEnd) {
-            return Result{ string("") + "Invalid Syntax. Pos: " + *itPattern };
+        else {
+            break;
         }
-    }
-    else {
-        for (; itPattern < seriesEnd; seriesCount++) {//不相等时循环获取到seriesEnd
-            if (auto getResult = getRepeat(); getResult.ifMatch == true) {
-                se.content.push_back(getResult.tResult);
-                continue;
-            }
-            if (auto getResult = getCharacterSet(); getResult.ifMatch == true) {
-                se.content.push_back(getResult.tResult);
-            }
-        }
-        //itPattern将指向最远匹配的括号
-        itPattern++;//越过括号
     }
     if (seriesCount == 0) {
-        return Result{"Series matched null."};
+        return Result{ "Series matched null." };
     }
     if (seriesCount == 1) {
         return Result{ true,se.content[0] };
     }
-    return Result{true,ClassType::Series,make_shared<Series>(se)};
+    return Result{ true,ClassType::Series,make_shared<Series>(se) };
+
+
+    //auto seriesEnd = get<1>(matchParen());//将指向最远匹配的括号
+    //auto seriesCount = 0;
+    //if (itPattern == seriesEnd) {
+    //    //相等时循环获取到结束
+    //    Result getResult{true,ClassType::Series,nullptr};
+    //    //for循环中如果上一次循环match到了就继续match
+    //    for (;itPattern<itPatternEnd&& getResult.ifMatch == true; ) {
+    //        if (getResult = getRepeat(); getResult.ifMatch == true) {
+    //            se.content.push_back(getResult.tResult);
+    //            seriesCount++;
+    //            continue;
+    //        }
+    //        if (getResult = getCharacterSet(); getResult.ifMatch == true) {
+    //            se.content.push_back(getResult.tResult); 
+    //            seriesCount++;
+    //        }
+    //    }
+    //    //无括号情况应该匹配到结束，itPattern!=itPatternEnd则异常
+    //    if (itPattern != itPatternEnd) {
+    //        return Result{ string("") + "Invalid Syntax. Pos: " + *itPattern };
+    //    }
+    //}
+    //else 
+    //{
+    //    for (; itPattern < seriesEnd; seriesCount++) {//不相等时循环获取到seriesEnd
+    //        if (auto getResult = getRepeat(); getResult.ifMatch == true) {
+    //            se.content.push_back(getResult.tResult);
+    //            continue;
+    //        }
+    //        if (auto getResult = getCharacterSet(); getResult.ifMatch == true) {
+    //            se.content.push_back(getResult.tResult);
+    //        }
+    //    }
+    //    //itPattern将指向最远匹配的括号
+    //    itPattern++;//越过括号
+    //}
+    //if (seriesCount == 0) {
+    //    return Result{"Series matched null."};
+    //}
+    //if (seriesCount == 1) {
+    //    return Result{ true,se.content[0] };
+    //}
+    //return Result{true,ClassType::Series,make_shared<Series>(se)};
 }
 
 
 //TODO:实现getParallel
-//Result CzxRegex::getParallel()
-//{
-//    return Parallel();
-//}
+Result CzxRegex::getParallel()
+{
+    Parallel se;
+    auto Read = itPattern;
+    size_t parallelCount = 0;
+
+
+    for (; itPattern < itPatternEnd;) {
+        if (auto getResult = getRepeat(); getResult.ifMatch == true) {
+            se.content.push_back(getResult.tResult);
+            parallelCount++;
+        }
+        else if (auto getResult = getCharacterSet(); getResult.ifMatch == true) {
+            se.content.push_back(getResult.tResult);
+            parallelCount++;
+        }
+        else if (auto paren = matchParen(); get<0>(paren) != get<1>(paren)) {
+            if (auto getResult = getSeries(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult);
+                parallelCount++;
+            }
+            else if (auto getResult = getParallel(); getResult.ifMatch == true) {
+                se.content.push_back(getResult.tResult);
+                parallelCount++;
+            }
+        }
+        else {
+            break;
+        }
+        if (Is(itPattern, "|")) {
+            continue;
+        }
+        break;
+    }
+    if (parallelCount == 0) {
+        return Result{ "Series matched null." };
+    }
+    if (parallelCount == 1) {
+        return Result{ true,se.content[0] };
+    }
+    return Result{ true,ClassType::Parallel,make_shared<Parallel>(se) };
+}
 
 
 
